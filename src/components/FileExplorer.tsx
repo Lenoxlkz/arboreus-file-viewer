@@ -16,11 +16,28 @@ export const FileExplorer: React.FC = () => {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
-  const currentFolders = state.folders.filter(f => f.parentId === state.currentFolderId);
-  const currentFiles = state.files.filter(f => 
+  type SortOption = 'name-asc' | 'name-desc' | 'date-desc' | 'date-asc';
+  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
+
+  const currentFoldersUnsorted = state.folders.filter(f => f.parentId === state.currentFolderId);
+  const currentFilesUnsorted = state.files.filter(f => 
     f.parentId === state.currentFolderId && 
     (state.searchQuery ? f.name.toLowerCase().includes(state.searchQuery.toLowerCase()) : true)
   );
+
+  const currentFolders = [...currentFoldersUnsorted].sort((a, b) => {
+    if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
+    if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
+    if (sortBy === 'date-asc') return a.createdAt - b.createdAt;
+    return b.createdAt - a.createdAt; // 'date-desc'
+  });
+
+  const currentFiles = [...currentFilesUnsorted].sort((a, b) => {
+    if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
+    if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
+    if (sortBy === 'date-asc') return a.lastModified - b.lastModified;
+    return b.lastModified - a.lastModified; // 'date-desc'
+  });
 
   const handleToggleSelection = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -134,6 +151,19 @@ export const FileExplorer: React.FC = () => {
         )}
 
         <div className="flex items-center gap-2 ml-auto">
+          <span className="text-xs text-[var(--text-variant)] hidden sm:block mr-2 font-medium">
+            {currentFiles.length} archivos, {currentFolders.length} carpetas
+          </span>
+          <select 
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value as SortOption)}
+            className="bg-[var(--surface-color)] border border-[var(--outline-color)] text-[var(--text-color)] text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-[var(--primary-color)] transition-colors cursor-pointer"
+          >
+            <option value="name-asc">A-Z</option>
+            <option value="name-desc">Z-A</option>
+            <option value="date-desc">Reciente - Antiguo</option>
+            <option value="date-asc">Antiguo - Reciente</option>
+          </select>
         </div>
       </div>
 
