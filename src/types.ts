@@ -41,6 +41,7 @@ export type AppAction =
   | { type: "ADD_FOLDER"; payload: VirtualFolder }
   | { type: "DELETE_FILE"; payload: string }
   | { type: "DELETE_FOLDER"; payload: string }
+  | { type: "CLEAR_ALL" }
   | { type: "RENAME_FILE"; payload: { id: string; name: string } }
   | { type: "RENAME_FOLDER"; payload: { id: string; name: string } }
   | { type: "MOVE_FILE"; payload: { id: string; newParentId: string | null } }

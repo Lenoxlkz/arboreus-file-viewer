@@ -18,4 +18,4 @@ export function getFileExtension(filename: string): string {
 }
 
 export const SUPPORTED_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif", "avif"];
-export const SUPPORTED_DOC_EXTENSIONS = ["pdf", "cbz", "cbr", "rar", "epub"];
+export const SUPPORTED_DOC_EXTENSIONS = ["pdf", "cbz", "cbr", "rar", "epub", "doc", "docx"];

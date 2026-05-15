@@ -3,6 +3,11 @@ import { createExtractorFromData as createNodeUnrarExtractor } from "node-unrar-
 import wasmUrl from "node-unrar-js/esm/js/unrar.wasm?url";
 import { createExtractorFromData as createUnrarExtractor } from "unrar-js";
 import JSZip from "jszip";
+import * as pdfjs from 'pdfjs-dist';
+// @ts-ignore
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 // Load wasm binary once
 let wasmBinaryCache: ArrayBuffer | null = null;
@@ -11,6 +16,28 @@ async function getWasmBinary() {
   const res = await fetch(wasmUrl);
   wasmBinaryCache = await res.arrayBuffer();
   return wasmBinaryCache;
+}
+
+export async function extractImagesFromPdf(blob: Blob): Promise<Blob[]> {
+  const arrayBuffer = await blob.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+  const pdfImageBlobs: Blob[] = [];
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+
+    if (context) {
+      await page.render({ canvasContext: context, viewport } as any).promise;
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.9));
+      if (blob) pdfImageBlobs.push(blob);
+    }
+  }
+  return pdfImageBlobs;
 }
 
 export async function extractImagesFromBlob(blob: Blob): Promise<Blob[]> {

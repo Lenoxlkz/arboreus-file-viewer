@@ -89,3 +89,10 @@ export async function deleteFileBlob(id: string) {
     await db.delete(STATE_STORE, `${id}_count`);
   }
 }
+
+export async function clearAllStorage() {
+  const db = await getDB();
+  await db.clear(FILE_STORE).catch(() => {});
+  await db.clear(BLOB_STORE).catch(() => {});
+  await db.clear(STATE_STORE).catch(() => {});
+}

@@ -11,8 +11,8 @@ import { FileUploader } from "./components/FileUploader";
 import { FileViewer } from "./components/FileViewer";
 import { motion, AnimatePresence } from "motion/react";
 import { useApp } from "./AppContext";
-import { Folder, Settings, X, CheckCircle2, Sparkles } from "lucide-react";
-import { cn } from "./lib/utils";
+import { Folder, Settings, X, CheckCircle2, Sparkles, Bomb, RefreshCw } from "lucide-react";
+import { cn, formatFileSize } from "./lib/utils";
 
 function AppContent() {
   const { state, dispatch } = useApp();
@@ -59,6 +59,64 @@ function AppContent() {
               
               <div className="flex-1 overflow-y-auto">
                 <div className="mb-8">
+                  <h3 className="text-sm font-semibold text-[var(--text-variant)] uppercase tracking-wider mb-4">Uso de Almacenamiento</h3>
+                  <div className="bg-[var(--primary-color)]/10 border border-[var(--primary-color)]/20 rounded-xl p-4 flex flex-col items-center justify-center gap-4">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[var(--text-variant)] text-xs font-medium uppercase tracking-wider mb-1">Peso Total Subido</span>
+                      <span className="text-2xl font-bold text-[var(--primary-color)]">
+                        {formatFileSize(state.files.reduce((acc, f) => acc + f.size, 0))}
+                      </span>
+                    </div>
+                    
+                    <div className="flex flex-col gap-2 w-full">
+                      <button
+                        onClick={() => {
+                          if (state.files.length === 0) {
+                            alert('No hay archivos para eliminar.');
+                            return;
+                          }
+                          if (window.confirm('¿Estás seguro de que quieres eliminar TODOS los archivos?')) {
+                            dispatch({ type: "CLEAR_ALL" });
+                          }
+                        }}
+                        className="w-full flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg font-medium transition-colors group"
+                        title="Eliminar todos los archivos"
+                      >
+                        <div className="relative">
+                          <Bomb size={18} className="group-hover:scale-110 transition-transform" />
+                          <motion.div
+                            animate={{ 
+                              scale: [1, 1.5, 1],
+                              opacity: [1, 0.5, 1]
+                            }}
+                            transition={{
+                              duration: 0.5,
+                              repeat: Infinity,
+                              ease: "linear"
+                            }}
+                            className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full"
+                          />
+                        </div>
+                        Eliminar Todos los Archivos
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          if (window.confirm('¿Estás seguro de que quieres refrescar la página? Todos los archivos temporales se perderán. (Esto sirve para refrescar la web en caso de un bug, ten en cuenta que tendrás que borrar los archivos y volver a subirlo si aún los necesitas)')) {
+                            window.location.reload();
+                          }
+                        }}
+                        className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                        title="Refrescar Página"
+                      >
+                        <RefreshCw size={18} />
+                        Refrescar Página
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-8">
                   <h3 className="text-sm font-semibold text-[var(--text-variant)] uppercase tracking-wider mb-4">Tema de la App</h3>
                   <div className="flex flex-col gap-2">
                     {(['light', 'dark', 'system', 'default'] as const).map(t => (
@@ -85,11 +143,11 @@ function AppContent() {
                 <div className="flex flex-col gap-5">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="text-[var(--primary-color)] shrink-0 mt-0.5" size={20} />
-                    <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Soporte Multiformato:</strong> Lee archivos PDF, ePub, CBZ, CBR y galerías de imágenes.</p>
+                    <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Soporte Multiformato:</strong> Lee archivos PDF, ePub, CBZ, CBR, Word (.doc, .docx) y galerías de imágenes.</p>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="text-[var(--primary-color)] shrink-0 mt-0.5" size={20} />
-                    <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Conversión Inteligente:</strong> Convierte automáticamente archivos RAR y CBR a formatos optimizados (CBZ o PDF).</p>
+                    <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Conversión Inteligente:</strong> Convierte archivos RAR/CBR a CBZ y realiza conversiones de PDF a ePUB y PDF a DOCX.</p>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="text-[var(--primary-color)] shrink-0 mt-0.5" size={20} />
@@ -147,11 +205,11 @@ function AppContent() {
               <div className="flex flex-col gap-4 mb-8">
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="text-[var(--primary-color)] shrink-0 mt-0.5" size={20} />
-                  <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Soporte Multiformato:</strong> Lee archivos PDF, ePub, CBZ, CBR y galerías de imágenes.</p>
+                  <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Soporte Multiformato:</strong> Lee archivos PDF, ePub, CBZ, CBR, Word (.doc, .docx) y galerías de imágenes.</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="text-[var(--primary-color)] shrink-0 mt-0.5" size={20} />
-                  <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Conversión Inteligente:</strong> Convierte automáticamente archivos RAR y CBR a formatos optimizados (CBZ o PDF).</p>
+                  <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Conversión Inteligente:</strong> Convierte archivos RAR/CBR a CBZ y realiza conversiones de PDF a ePUB y PDF a DOCX.</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="text-[var(--primary-color)] shrink-0 mt-0.5" size={20} />

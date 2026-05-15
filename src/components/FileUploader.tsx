@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Upload, FolderPlus, FilePlus, Loader2, FileDown, X } from "lucide-react";
+import { Upload, FolderPlus, FilePlus, Loader2, FileDown, X, Info } from "lucide-react";
 import { useApp } from "../AppContext";
 import { VirtualFile, VirtualFolder } from "../types";
 import { getFileExtension } from "../lib/utils";
@@ -15,12 +15,23 @@ export const FileUploader: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [rarQueue, setRarQueue] = useState<{file: File, id: string, virtualFile: VirtualFile}[]>([]);
   const [isConvertingRar, setIsConvertingRar] = useState(false);
+  const [showUploadHint, setShowUploadHint] = useState(false);
+  const uploadHintTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
   const processFiles = async (files: FileList | File[], forcedParentId: string | null = state.currentFolderId) => {
     setIsProcessing(true);
+    setShowUploadHint(true);
+    
+    if (uploadHintTimeoutRef.current) {
+      clearTimeout(uploadHintTimeoutRef.current);
+    }
+    uploadHintTimeoutRef.current = setTimeout(() => {
+      setShowUploadHint(false);
+    }, 12000);
+
     const newFiles: VirtualFile[] = [];
     const newFolders: Map<string, string> = new Map();
     const discoveredRars: {file: File, id: string, virtualFile: VirtualFile}[] = [];
@@ -145,42 +156,72 @@ export const FileUploader: React.FC = () => {
 
   return (
     <>
-      <div className="flex gap-2 max-sm:fixed max-sm:bottom-24 max-sm:left-1/2 max-sm:-translate-x-1/2 max-sm:flex-row max-sm:z-[150] sm:items-center">
-        <input
-          type="file"
-          multiple
-          className="hidden"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-        />
-        <input
-          type="file"
-          webkitdirectory=""
-          className="hidden"
-          // @ts-ignore
-          directory=""
-          ref={folderInputRef}
-          onChange={handleFileChange}
-        />
-        
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="flex items-center justify-center gap-2 max-sm:w-14 max-sm:h-14 sm:px-4 sm:py-2 bg-[var(--primary-color)] text-[var(--on-primary-color)] rounded-full hover:opacity-90 transition-all shadow-lg active:scale-95"
-          title="Add Files"
-        >
-          <FilePlus size={24} className="sm:w-[18px] sm:h-[18px]" />
-          <span className="hidden sm:inline">Add Files</span>
-        </button>
+      {!state.selectedFileId && (
+        <div className="flex gap-2 max-sm:fixed max-sm:bottom-24 max-sm:left-1/2 max-sm:-translate-x-1/2 max-sm:flex-row max-sm:z-[150] sm:items-center">
+          <input
+            type="file"
+            multiple
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+          />
+          <input
+            type="file"
+            webkitdirectory=""
+            className="hidden"
+            // @ts-ignore
+            directory=""
+            ref={folderInputRef}
+            onChange={handleFileChange}
+          />
+          
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center justify-center gap-2 max-sm:w-14 max-sm:h-14 sm:px-4 sm:py-2 bg-[var(--primary-color)] text-[var(--on-primary-color)] rounded-full hover:opacity-90 transition-all shadow-lg active:scale-95"
+            title="Add Files"
+          >
+            <FilePlus size={24} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="hidden sm:inline">Add Files</span>
+          </button>
 
-        <button
-          onClick={() => folderInputRef.current?.click()}
-          className="flex items-center justify-center gap-2 max-sm:w-14 max-sm:h-14 sm:px-4 sm:py-2 bg-[var(--surface-color)] text-[var(--text-color)] rounded-full border border-forest-outline/30 hover:bg-forest-surface-elevated transition-all shadow-md active:scale-95"
-          title="Add Folder"
-        >
-          <FolderPlus size={24} className="sm:w-[18px] sm:h-[18px]" />
-          <span className="hidden sm:inline">Add Folder</span>
-        </button>
-      </div>
+          <button
+            onClick={() => folderInputRef.current?.click()}
+            className="flex items-center justify-center gap-2 max-sm:w-14 max-sm:h-14 sm:px-4 sm:py-2 bg-[var(--surface-color)] text-[var(--text-color)] rounded-full border border-forest-outline/30 hover:bg-forest-surface-elevated transition-all shadow-md active:scale-95"
+            title="Add Folder"
+          >
+            <FolderPlus size={24} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="hidden sm:inline">Add Folder</span>
+          </button>
+        </div>
+      )}
+
+      <AnimatePresence>
+        {showUploadHint && createPortal(
+          <motion.div
+            initial={{ opacity: 0, y: -20, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: -20, x: "-50%" }}
+            className="fixed top-12 left-1/2 z-[9999] bg-[var(--surface-color)] border border-blue-500/40 shadow-[0_8px_30px_rgb(0,0,0,0.12)] px-6 py-4 rounded-2xl flex items-center gap-4"
+          >
+            <div className="bg-blue-500/10 p-2 rounded-full">
+              <Info size={24} className="text-blue-500" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-[var(--text-color)]">Consejo de carga</span>
+              <span className="text-sm text-[var(--text-variant)]">
+                Espera unos 10-15 segundos para asegurar una carga completa del archivo.
+              </span>
+            </div>
+            <button 
+              onClick={() => setShowUploadHint(false)}
+              className="ml-2 p-1.5 bg-[var(--surface-color)] hover:bg-[var(--background-color)] rounded-full text-[var(--text-variant)] hover:text-[var(--text-color)] transition-colors border border-[var(--border-color)]"
+            >
+              <X size={16} />
+            </button>
+          </motion.div>,
+          document.body
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {rarQueue.length > 0 && createPortal(

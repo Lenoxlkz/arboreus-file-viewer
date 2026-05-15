@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { AppState, AppAction, Theme, VirtualFile, VirtualFolder } from "./types";
-import { saveAppMetadata, loadAppMetadata, deleteFileBlob } from "./lib/storage";
+import { saveAppMetadata, loadAppMetadata, deleteFileBlob, clearAllStorage } from "./lib/storage";
 
 const initialState: AppState = {
   files: [],
@@ -52,6 +52,22 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         folders: state.folders.filter(f => f.id !== action.payload),
         files: state.files.filter(f => f.parentId !== action.payload)
+      };
+    }
+    case "CLEAR_ALL": {
+      state.files.forEach(f => {
+        if (f.objectUrl) URL.revokeObjectURL(f.objectUrl);
+        if (f.extractedImages) {
+          f.extractedImages.forEach(url => URL.revokeObjectURL(url));
+        }
+      });
+      clearAllStorage();
+      return {
+        ...state,
+        files: [],
+        folders: [],
+        currentFolderId: null,
+        selectedFileId: null
       };
     }
     case "RENAME_FILE":

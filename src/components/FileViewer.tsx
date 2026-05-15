@@ -5,7 +5,7 @@ import { SUPPORTED_IMAGE_EXTENSIONS, getFileExtension } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
 import { getFileBlob, getExtractedImages, saveExtractedImages } from "../lib/storage";
-import { extractImagesFromBlob } from "../lib/extractor";
+import { extractImagesFromBlob, extractImagesFromPdf } from "../lib/extractor";
 import * as pdfjs from 'pdfjs-dist';
 // @ts-ignore
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
@@ -23,6 +23,7 @@ export const FileViewer: React.FC = () => {
   const viewerRef = useRef<HTMLDivElement>(null);
   const epubContainerRef = useRef<HTMLDivElement>(null);
   const [epubRendition, setEpubRendition] = useState<any>(null);
+  const [fileHtml, setFileHtml] = useState<string | null>(null);
 
   const file = state.files.find(f => f.id === state.selectedFileId);
   
@@ -52,33 +53,29 @@ export const FileViewer: React.FC = () => {
               extractedImages = imageBlobs.map(b => URL.createObjectURL(b));
               await saveExtractedImages(file.id, imageBlobs);
             } else if (ext === "pdf") {
-              const arrayBuffer = await blob.arrayBuffer();
-              const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-              const pdfImageBlobs: Blob[] = [];
-
-              for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const viewport = page.getViewport({ scale: 2 });
-                const canvas = document.createElement("canvas");
-                const context = canvas.getContext("2d");
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-
-                if (context) {
-                  await page.render({ canvasContext: context, viewport } as any).promise;
-                  const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.9));
-                  if (blob) pdfImageBlobs.push(blob);
-                }
-              }
+              const pdfImageBlobs = await extractImagesFromPdf(blob);
               extractedImages = pdfImageBlobs.map(b => URL.createObjectURL(b));
               await saveExtractedImages(file.id, pdfImageBlobs);
             } else if (ext === "epub") {
               // We do not extract images for epub; we just load it via epubjs later
               extractedImages = []; 
+            } else if (ext === "doc" || ext === "docx") {
+              const arrayBuffer = await blob.arrayBuffer();
+              const mammoth = await import("mammoth");
+              const result = await mammoth.convertToHtml({ arrayBuffer });
+              setFileHtml(result.value);
             }
           }
 
           dispatch({ type: "UPDATE_FILE_URL", payload: { id: file.id, url, extractedImages } });
+        } else if (file.extension === "doc" || file.extension === "docx") {
+          const blob = await getFileBlob(file.id);
+          if (blob) {
+            const arrayBuffer = await blob.arrayBuffer();
+            const mammoth = await import("mammoth");
+            const result = await mammoth.convertToHtml({ arrayBuffer });
+            setFileHtml(result.value);
+          }
         }
       } catch (e) {
         console.error("Hydration failed", e);
@@ -122,26 +119,41 @@ export const FileViewer: React.FC = () => {
     if (file?.extension === 'epub' && file.objectUrl && epubContainerRef.current && !isLoading) {
       const book = ePub();
       
-      fetch(file.objectUrl)
-        .then(res => res.arrayBuffer())
-        .then(buffer => book.open(buffer, "binary"))
-        .catch(err => console.error(err));
+      let isMounted = true;
 
-      const rendition = book.renderTo(epubContainerRef.current, {
-        manager: isContinuous ? "continuous" : "default",
-        flow: isContinuous ? "scrolled" : "paginated",
-        width: "100%",
-        height: "100%",
-        spread: "none",
-      });
+      const loadEpub = async () => {
+        try {
+          const res = await fetch(file.objectUrl!);
+          const buffer = await res.arrayBuffer();
+          await book.open(buffer, "binary");
+          
+          if (!isMounted || !epubContainerRef.current) return;
+          
+          const rendition = book.renderTo(epubContainerRef.current, {
+            manager: isContinuous ? "continuous" : "default",
+            flow: isContinuous ? "scrolled" : "paginated",
+            width: "100%",
+            height: "100%",
+            spread: "none",
+          });
+          
+          rendition.themes.fontSize(`${zoom}%`);
+          await rendition.display();
+          
+          if (isMounted) {
+            setEpubRendition(rendition);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
       
-      rendition.themes.fontSize(`${zoom}%`);
-      
-      rendition.display();
-      setEpubRendition(rendition);
+      loadEpub();
 
       return () => {
+        isMounted = false;
         book.destroy();
+        setEpubRendition(null);
       };
     }
   }, [file?.objectUrl, file?.extension, isLoading, isContinuous]);
@@ -292,6 +304,14 @@ export const FileViewer: React.FC = () => {
                       </button>
                     </div>
                   )}
+                </div>
+              ) : file.extension === 'doc' || file.extension === 'docx' ? (
+                <div className="w-full h-full bg-white text-black overflow-auto relative p-8 sm:p-12">
+                   <div 
+                     dangerouslySetInnerHTML={{ __html: fileHtml || "" }} 
+                     className="max-w-4xl mx-auto prose prose-sm sm:prose-base document-content" 
+                     style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}
+                   />
                 </div>
               ) : isContinuous ? (
                 <div className="flex flex-col items-center py-8 gap-4">

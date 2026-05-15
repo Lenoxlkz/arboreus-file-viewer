@@ -1,24 +1,50 @@
 import React, { useState } from "react";
-import { Folder, MoreVertical, ChevronRight, FileText, ImageIcon, Settings, Trash2, Download, Edit2, ExternalLink, Move, RefreshCw, FileArchive, FileType, BookOpen } from "lucide-react";
+import { Folder, MoreVertical, ChevronRight, FileText, ImageIcon, Settings, Trash2, Download, Edit2, ExternalLink, Move, RefreshCw, FileArchive, FileType, BookOpen, CheckSquare, Square, X, CheckCircle2 } from "lucide-react";
 import { useApp } from "../AppContext";
 import { cn, formatFileSize, SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_DOC_EXTENSIONS, getFileExtension } from "../lib/utils";
 import { VirtualFile, VirtualFolder } from "../types";
 import { motion, AnimatePresence } from "motion/react";
-import { convertToCBZ, convertToPDF } from "../lib/conversion";
+import { convertToCBZ, convertToPDF, convertToEPUB, convertPdfToDocx } from "../lib/conversion";
 import { getFileBlob, getExtractedImages, saveFileBlob, saveExtractedImages } from "../lib/storage";
-import { extractImagesFromBlob } from "../lib/extractor";
+import { extractImagesFromBlob, extractImagesFromPdf } from "../lib/extractor";
 import JSZip from "jszip";
 
 export const FileExplorer: React.FC = () => {
   const { state, dispatch } = useApp();
   const [isConverting, setIsConverting] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, item: VirtualFile | VirtualFolder | null } | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   const currentFolders = state.folders.filter(f => f.parentId === state.currentFolderId);
   const currentFiles = state.files.filter(f => 
     f.parentId === state.currentFolderId && 
     (state.searchQuery ? f.name.toLowerCase().includes(state.searchQuery.toLowerCase()) : true)
   );
+
+  const handleToggleSelection = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newSet = new Set(selectedItems);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedItems(newSet);
+  };
+
+  const handleSelectAll = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const allIds = new Set<string>();
+    currentFolders.forEach(f => allIds.add(f.id));
+    currentFiles.forEach(f => allIds.add(f.id));
+    setSelectedItems(allIds);
+  };
+
+  const clearSelection = () => {
+    setSelectionMode(false);
+    setSelectedItems(new Set());
+  };
 
   const handleOpen = (item: VirtualFile | VirtualFolder) => {
     if ('extension' in item) {
@@ -41,7 +67,12 @@ export const FileExplorer: React.FC = () => {
     if (!fileBlob) return [];
 
     try {
-      blobs = await extractImagesFromBlob(fileBlob);
+      if (file.extension === 'pdf') {
+        blobs = await extractImagesFromPdf(fileBlob);
+      } else {
+        blobs = await extractImagesFromBlob(fileBlob);
+      }
+      
       if (blobs.length > 0) {
         await saveExtractedImages(file.id, blobs);
       }
@@ -72,24 +103,38 @@ export const FileExplorer: React.FC = () => {
   return (
     <div className="flex-1 overflow-auto p-4 sm:p-6" onClick={() => setContextMenu(null)}>
       {/* Header / Breadcrumbs */}
-      <div className="flex items-center gap-2 mb-6 text-sm font-medium overflow-x-auto no-scrollbar pb-2">
-        <button 
-          onClick={() => dispatch({ type: "SET_CURRENT_FOLDER", payload: null })}
-          className={cn("hover:text-[var(--primary-color)] transition-colors", !state.currentFolderId && "text-[var(--primary-color)]")}
-        >
-          My Files
-        </button>
-        {breadcrumbs.map((b, i) => (
-          <React.Fragment key={b.id}>
-            <ChevronRight size={14} className="text-[var(--text-variant)] shrink-0" />
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-2">
+        {!selectionMode ? (
+          <div className="flex items-center gap-2 text-sm font-medium overflow-x-auto no-scrollbar">
             <button 
-              onClick={() => dispatch({ type: "SET_CURRENT_FOLDER", payload: b.id })}
-              className={cn("hover:text-[var(--primary-color)] transition-colors whitespace-nowrap", i === breadcrumbs.length - 1 && "text-[var(--primary-color)]")}
+              onClick={() => dispatch({ type: "SET_CURRENT_FOLDER", payload: null })}
+              className={cn("hover:text-[var(--primary-color)] transition-colors", !state.currentFolderId && "text-[var(--primary-color)]")}
             >
-              {b.name}
+              My Files
             </button>
-          </React.Fragment>
-        ))}
+            {breadcrumbs.map((b, i) => (
+              <React.Fragment key={b.id}>
+                <ChevronRight size={14} className="text-[var(--text-variant)] shrink-0" />
+                <button 
+                  onClick={() => dispatch({ type: "SET_CURRENT_FOLDER", payload: b.id })}
+                  className={cn("hover:text-[var(--primary-color)] transition-colors whitespace-nowrap", i === breadcrumbs.length - 1 && "text-[var(--primary-color)]")}
+                >
+                  {b.name}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-4 text-sm font-medium whitespace-nowrap">
+            <button onClick={() => { setSelectionMode(false); setSelectedItems(new Set()); }} className="p-1 hover:bg-forest-outline/10 rounded-lg">
+              <X size={20} />
+            </button>
+            <span className="text-[var(--primary-color)]">{selectedItems.size} seleccionados</span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 ml-auto">
+        </div>
       </div>
 
       {state.viewMode === "grid" ? (
@@ -98,11 +143,19 @@ export const FileExplorer: React.FC = () => {
             <motion.div
               layout
               key={folder.id}
-              onClick={() => handleOpen(folder)}
-              onContextMenu={(e) => handleContextMenu(e, folder)}
+              onClick={(e) => {
+                if (selectionMode) { e.preventDefault(); handleToggleSelection(folder.id, e as unknown as React.MouseEvent); }
+                else handleOpen(folder);
+              }}
+              onContextMenu={(e) => { if (!selectionMode) handleContextMenu(e, folder); }}
               className="flex flex-col items-center gap-2 p-3 rounded-[var(--radius-m3)] hover:bg-forest-surface-elevated cursor-pointer transition-colors group relative"
             >
-              <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center bg-forest-primary/10 rounded-2xl group-hover:bg-forest-primary/20 transition-all">
+              {selectionMode && (
+                <div className="absolute top-2 left-2 z-10 text-[var(--primary-color)]">
+                  {selectedItems.has(folder.id) ? <CheckSquare size={20} className="fill-[var(--surface-color)] bg-[var(--surface-color)] rounded-sm" /> : <Square size={20} className="text-[var(--text-variant)] fill-[var(--surface-color)] bg-[var(--surface-color)] rounded-sm" />}
+                </div>
+              )}
+              <div className={cn("w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center bg-forest-primary/10 rounded-2xl group-hover:bg-forest-primary/20 transition-all", selectedItems.has(folder.id) && "ring-2 ring-[var(--primary-color)]")}>
                 <Folder className="text-forest-primary" size={32} fill="currentColor" fillOpacity={0.2} />
               </div>
               <span className="text-xs sm:text-sm font-medium text-center line-clamp-2 px-1">{folder.name}</span>
@@ -112,11 +165,19 @@ export const FileExplorer: React.FC = () => {
             <motion.div
               layout
               key={file.id}
-              onClick={() => handleOpen(file)}
-              onContextMenu={(e) => handleContextMenu(e, file)}
-              className="flex flex-col items-center gap-2 p-3 rounded-[var(--radius-m3)] hover:bg-forest-surface-elevated cursor-pointer transition-colors group"
+              onClick={(e) => {
+                if (selectionMode) { e.preventDefault(); handleToggleSelection(file.id, e as unknown as React.MouseEvent); }
+                else handleOpen(file);
+              }}
+              onContextMenu={(e) => { if (!selectionMode) handleContextMenu(e, file); }}
+              className="flex flex-col items-center gap-2 p-3 rounded-[var(--radius-m3)] hover:bg-forest-surface-elevated cursor-pointer transition-colors group relative"
             >
-              <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center bg-forest-secondary/10 rounded-2xl group-hover:bg-forest-secondary/20 transition-all overflow-hidden border border-forest-outline/5">
+              {selectionMode && (
+                <div className="absolute top-2 left-2 z-10 text-[var(--primary-color)]">
+                  {selectedItems.has(file.id) ? <CheckSquare size={20} className="fill-[var(--surface-color)] bg-[var(--surface-color)] rounded-sm" /> : <Square size={20} className="text-[var(--text-variant)] fill-[var(--surface-color)] bg-[var(--surface-color)] rounded-sm" />}
+                </div>
+              )}
+              <div className={cn("w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center bg-forest-secondary/10 rounded-2xl group-hover:bg-forest-secondary/20 transition-all overflow-hidden border border-forest-outline/5", selectedItems.has(file.id) && "ring-2 ring-[var(--primary-color)]")}>
                 {SUPPORTED_IMAGE_EXTENSIONS.includes(file.extension) && file.objectUrl ? (
                   <img src={file.objectUrl} alt={file.name} className="w-full h-full object-cover" />
                 ) : file.extension === 'pdf' ? (
@@ -141,10 +202,18 @@ export const FileExplorer: React.FC = () => {
           {currentFolders.map(folder => (
             <div
               key={folder.id}
-              onClick={() => handleOpen(folder)}
-              onContextMenu={(e) => handleContextMenu(e, folder)}
-              className="flex items-center gap-4 p-4 hover:bg-forest-surface-elevated cursor-pointer transition-colors border-b border-forest-outline/5 last:border-0"
+              onClick={(e) => {
+                if (selectionMode) { e.preventDefault(); handleToggleSelection(folder.id, e as unknown as React.MouseEvent); }
+                else handleOpen(folder);
+              }}
+              onContextMenu={(e) => { if (!selectionMode) handleContextMenu(e, folder); }}
+              className={cn("flex items-center gap-4 p-4 hover:bg-forest-surface-elevated cursor-pointer transition-colors border-b border-forest-outline/5 last:border-0", selectedItems.has(folder.id) && "bg-forest-primary/5")}
             >
+              {selectionMode && (
+                <div className="text-[var(--primary-color)]">
+                  {selectedItems.has(folder.id) ? <CheckSquare size={20} /> : <Square size={20} className="text-[var(--text-variant)]" />}
+                </div>
+              )}
               <Folder className="text-forest-primary" size={24} />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium truncate">{folder.name}</div>
@@ -155,10 +224,18 @@ export const FileExplorer: React.FC = () => {
           {currentFiles.map(file => (
             <div
               key={file.id}
-              onClick={() => handleOpen(file)}
-              onContextMenu={(e) => handleContextMenu(e, file)}
-              className="flex items-center gap-4 p-4 hover:bg-forest-surface-elevated cursor-pointer transition-colors border-b border-forest-outline/5 last:border-0"
+              onClick={(e) => {
+                if (selectionMode) { e.preventDefault(); handleToggleSelection(file.id, e as unknown as React.MouseEvent); }
+                else handleOpen(file);
+              }}
+              onContextMenu={(e) => { if (!selectionMode) handleContextMenu(e, file); }}
+              className={cn("flex items-center gap-4 p-4 hover:bg-forest-surface-elevated cursor-pointer transition-colors border-b border-forest-outline/5 last:border-0", selectedItems.has(file.id) && "bg-forest-primary/5")}
             >
+              {selectionMode && (
+                <div className="text-[var(--primary-color)]">
+                  {selectedItems.has(file.id) ? <CheckSquare size={20} /> : <Square size={20} className="text-[var(--text-variant)]" />}
+                </div>
+              )}
               <div className="w-10 h-10 flex items-center justify-center bg-forest-secondary/10 rounded-lg group-hover:bg-forest-secondary/20 transition-all overflow-hidden shrink-0">
                 {SUPPORTED_IMAGE_EXTENSIONS.includes(file.extension) ? (
                   <img src={file.objectUrl} alt={file.name} className="w-full h-full object-cover" />
@@ -325,6 +402,93 @@ export const FileExplorer: React.FC = () => {
                 >
                   {isConverting ? <RefreshCw size={16} className="animate-spin" /> : <FileType size={16} />}
                   Convert to PDF
+                </button>
+              </>
+            )}
+
+            {contextMenu.item && 'extension' in contextMenu.item && contextMenu.item.extension === 'pdf' && (
+              <>
+                <div className="h-px bg-forest-outline/10 my-1" />
+                <button 
+                  disabled={isConverting}
+                  onClick={async () => {
+                    const file = contextMenu.item as VirtualFile;
+                    setIsConverting(true);
+                    setContextMenu(null);
+
+                    try {
+                      const docxBlob = await convertPdfToDocx(file);
+                      const newId = crypto.randomUUID();
+                      await saveFileBlob(newId, docxBlob);
+                      
+                      dispatch({
+                        type: "ADD_FILES",
+                        payload: [{
+                          id: newId,
+                          name: file.name.replace(/\.pdf$/i, '.docx'),
+                          extension: 'docx',
+                          size: docxBlob.size,
+                          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                          parentId: file.parentId,
+                          lastModified: Date.now(),
+                          objectUrl: URL.createObjectURL(docxBlob),
+                          extractedImages: []
+                        }]
+                      });
+                      alert("Successfully converted PDF to DOCX!");
+                    } catch (err) {
+                      console.error(err);
+                      alert("Could not convert the PDF to DOCX.");
+                    } finally {
+                      setIsConverting(false);
+                    }
+                  }}
+                  className={cn("w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--primary-color)]/10 transition-colors text-sm text-[var(--primary-color)] font-medium", isConverting && "opacity-50 pointer-events-none")}
+                >
+                  {isConverting ? <RefreshCw size={16} className="animate-spin" /> : <FileText size={16} />}
+                  Convert to DOCX
+                </button>
+                <button 
+                  disabled={isConverting}
+                  onClick={async () => {
+                    const file = contextMenu.item as VirtualFile;
+                    setIsConverting(true);
+                    setContextMenu(null);
+
+                    try {
+                      const blobs = await getOrExtractBlobs(file);
+                      if (blobs.length > 0) {
+                        const epubBlob = await convertToEPUB(file, blobs);
+                        const newId = crypto.randomUUID();
+                        await saveFileBlob(newId, epubBlob);
+                        await saveExtractedImages(newId, blobs);
+                        
+                        dispatch({
+                          type: "ADD_FILES",
+                          payload: [{
+                            id: newId,
+                            name: file.name.replace(/\.pdf$/i, '.epub'),
+                            extension: 'epub',
+                            size: epubBlob.size,
+                            type: 'application/epub+zip',
+                            parentId: file.parentId,
+                            lastModified: Date.now(),
+                            objectUrl: URL.createObjectURL(epubBlob),
+                            extractedImages: blobs.map(b => URL.createObjectURL(b))
+                          }]
+                        });
+                        alert("Successfully converted PDF to EPUB!");
+                      } else {
+                        alert("Could not extract any images. The file might be unsupported.");
+                      }
+                    } finally {
+                      setIsConverting(false);
+                    }
+                  }}
+                  className={cn("w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--primary-color)]/10 transition-colors text-sm text-[var(--primary-color)] font-medium", isConverting && "opacity-50 pointer-events-none")}
+                >
+                  {isConverting ? <RefreshCw size={16} className="animate-spin" /> : <BookOpen size={16} />}
+                  Convert to EPUB
                 </button>
               </>
             )}
