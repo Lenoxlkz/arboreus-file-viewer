@@ -20,6 +20,7 @@ export const FileViewer: React.FC = () => {
   const [isContinuous, setIsContinuous] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [autoScrollSpeed, setAutoScrollSpeed] = useState<number>(0);
   const viewerRef = useRef<HTMLDivElement>(null);
   const epubContainerRef = useRef<HTMLDivElement>(null);
   const [epubRendition, setEpubRendition] = useState<any>(null);
@@ -164,6 +165,62 @@ export const FileViewer: React.FC = () => {
     }
   }, [zoom, epubRendition, file?.extension]);
 
+  // Auto-scroll logic
+  useEffect(() => {
+    if (autoScrollSpeed === 0) return;
+    
+    let timeoutId: NodeJS.Timeout;
+    let rAFId: number;
+    let lastTime = performance.now();
+
+    const startScrolling = () => {
+       if (isContinuous || file?.extension === 'doc' || file?.extension === 'docx') {
+         const loop = (time: number) => {
+           const delta = time - lastTime;
+           lastTime = time;
+           if (viewerRef.current) {
+               viewerRef.current.scrollTop += autoScrollSpeed * (delta / 16);
+           }
+           // Try to scroll iframe if it's epub in continuous mode
+           if (file?.extension === 'epub' && epubRendition) {
+             try {
+               const iframe = epubContainerRef.current?.querySelector('iframe');
+               if (iframe?.contentWindow) {
+                 iframe.contentWindow.scrollBy(0, autoScrollSpeed * (delta / 16));
+               }
+             } catch (e) {}
+           }
+           rAFId = requestAnimationFrame(loop);
+         };
+         lastTime = performance.now();
+         rAFId = requestAnimationFrame(loop);
+       } else {
+         const flipPage = () => {
+           if (file?.extension === 'epub' && epubRendition) {
+              epubRendition.next();
+           } else {
+              setCurrentPage(p => {
+                const maxPage = images.length > 0 ? images.length - 1 : 0;
+                return p < maxPage ? p + 1 : p;
+              });
+           }
+           timeoutId = setTimeout(flipPage, Math.max(1000, 5000 / autoScrollSpeed));
+         };
+         timeoutId = setTimeout(flipPage, Math.max(1000, 5000 / autoScrollSpeed));
+       }
+    };
+
+    const delayTimeout = setTimeout(() => {
+      startScrolling();
+    }, 1000);
+
+    return () => {
+       clearTimeout(delayTimeout);
+       clearTimeout(timeoutId);
+       if (rAFId) cancelAnimationFrame(rAFId);
+    };
+  }, [autoScrollSpeed, isContinuous, file?.extension, images.length, epubRendition]);
+
   if (!file) return null;
 
   const handleClose = () => dispatch({ type: "SET_SELECTED_FILE", payload: null });
@@ -227,6 +284,26 @@ export const FileViewer: React.FC = () => {
                         <ArrowLeftRight size={16} className={cn("mr-3", !isContinuous ? "text-forest-primary" : "text-white/50")} />
                         <span className={cn(!isContinuous ? "text-forest-primary font-medium" : "text-white/70")}>Scroll Horizontal</span>
                       </button>
+
+                      <div className="flex flex-col border-t border-white/10 mt-1 pt-1 pb-1 px-4">
+                        <span className="text-white/50 text-[10px] uppercase tracking-wider mb-2 mt-1">Auto Scroll Velocidad</span>
+                        <select 
+                          value={autoScrollSpeed} 
+                          onChange={e => { setAutoScrollSpeed(Number(e.target.value)); setShowSettings(false); }}
+                          className="bg-black/50 border border-white/20 text-white rounded-lg px-2 py-1.5 text-xs w-full focus:outline-none focus:border-forest-primary transition-colors cursor-pointer appearance-none"
+                        >
+                          <option value={0}>Desactivado (default)</option>
+                          <option value={0.5}>x0.5</option>
+                          <option value={1}>x1</option>
+                          <option value={1.5}>x1.5</option>
+                          <option value={2}>x2</option>
+                          <option value={2.5}>x2.5</option>
+                          <option value={3}>x3</option>
+                          <option value={4}>x4</option>
+                          <option value={6}>x6</option>
+                          <option value={8}>x8</option>
+                        </select>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -282,7 +359,7 @@ export const FileViewer: React.FC = () => {
             )}
 
             {/* Viewport */}
-            <div ref={viewerRef} className="flex-1 overflow-auto no-scrollbar bg-black scroll-smooth relative">
+            <div ref={viewerRef} className={cn("flex-1 overflow-auto no-scrollbar bg-black relative", autoScrollSpeed === 0 && "scroll-smooth")}>
               {file.extension === 'epub' ? (
                 <div className="w-full h-full bg-white relative">
                   <div ref={epubContainerRef} className="w-full h-full" />
