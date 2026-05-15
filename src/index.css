@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
@@ -26,57 +26,67 @@
 @layer base {
   /* Light Mode (Original Forest Green) */
   :root {
-    --bg-color: #FBFDF7;
-    --surface-color: #F0F3E9;
-    --surface-elevated-color: #E8EBE2;
+    --bg-color: #fbfdf7;
+    --surface-color: #f0f3e9;
+    --surface-elevated-color: #e8ebe2;
     --primary-color: #496739;
-    --on-primary-color: #FFFFFF;
-    --secondary-color: #55624C;
-    --on-secondary-color: #FFFFFF;
-    --outline-color: #74796D;
-    --surface-variant-color: #E0E4D6;
-    --on-surface-variant-color: #43483F;
-    --error-color: #BA1A1A;
-    --text-color: #191C18;
-    --text-variant: #43483F;
+    --on-primary-color: #ffffff;
+    --secondary-color: #55624c;
+    --on-secondary-color: #ffffff;
+    --outline-color: #74796d;
+    --surface-variant-color: #e0e4d6;
+    --on-surface-variant-color: #43483f;
+    --error-color: #ba1a1a;
+    --text-color: #191c18;
+    --text-variant: #43483f;
   }
 
   /* Dark Mode (Original Forest Dark) */
   .dark {
     --bg-color: #000000;
     --surface-color: #111111;
-    --surface-elevated-color: #1A1A1A;
-    --primary-color: #B1CCA0;
+    --surface-elevated-color: #1a1a1a;
+    --primary-color: #b1cca0;
     --on-primary-color: #000000;
-    --secondary-color: #BFCAB2;
+    --secondary-color: #bfcab2;
     --on-secondary-color: #000000;
     --outline-color: #444444;
     --surface-variant-color: #222222;
-    --on-surface-variant-color: #CCCCCC;
-    --error-color: #FFB4AB;
-    --text-color: #FFFFFF;
-    --text-variant: #CCCCCC;
+    --on-surface-variant-color: #cccccc;
+    --error-color: #ffb4ab;
+    --text-color: #ffffff;
+    --text-variant: #cccccc;
   }
 
   /* Custom Default Theme */
   .theme-default {
     --bg-color: #000000;
-    --surface-color: #1A1A1A;
+    --surface-color: #1a1a1a;
     --surface-elevated-color: #292828; /* Neutral */
-    --primary-color: #00FFFF;
+    --primary-color: #00ffff;
     --on-primary-color: #000000; /* Contrast for #00FFFF */
-    --secondary-color: #00CE00;
+    --secondary-color: #00ce00;
     --on-secondary-color: #000000; /* Contrast for #00CE00 */
     --outline-color: #555555;
     --surface-variant-color: #292828;
-    --on-surface-variant-color: #E0E0E0;
-    --error-color: #FFB4AB;
-    --text-color: #FFFFFF;
-    --text-variant: #CCCCCC;
+    --on-surface-variant-color: #e0e0e0;
+    --error-color: #ffb4ab;
+    --text-color: #ffffff;
+    --text-variant: #cccccc;
   }
 
   body {
     @apply bg-[var(--bg-color)] text-[var(--text-color)] transition-colors duration-300;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Allow text selection in inputs and textareas */
+  input,
+  textarea {
+    -webkit-user-select: auto;
+    user-select: auto;
   }
 
   * {
