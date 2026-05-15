@@ -1,13 +1,11 @@
 import React, { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  Upload,
   FolderPlus,
   FilePlus,
   Loader2,
   FileDown,
   X,
-  Info,
 } from "lucide-react";
 import { useApp } from "../AppContext";
 import { VirtualFile, VirtualFolder } from "../types";
@@ -25,9 +23,6 @@ export const FileUploader: React.FC = () => {
     { file: File; id: string; virtualFile: VirtualFile }[]
   >([]);
   const [isConvertingRar, setIsConvertingRar] = useState(false);
-  const [showUploadHint, setShowUploadHint] = useState(false);
-  const [uploadFileCount, setUploadFileCount] = useState(1);
-  const uploadHintTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -37,18 +32,6 @@ export const FileUploader: React.FC = () => {
     forcedParentId: string | null = state.currentFolderId,
   ) => {
     setIsProcessing(true);
-    setUploadFileCount(files.length);
-    setShowUploadHint(true);
-
-    if (uploadHintTimeoutRef.current) {
-      clearTimeout(uploadHintTimeoutRef.current);
-    }
-    uploadHintTimeoutRef.current = setTimeout(() => {
-      setShowUploadHint(false);
-    }, 12000);
-
-    // Yield to event loop so React can paint the hint
-    await new Promise((resolve) => setTimeout(resolve, 100));
 
     const newFiles: VirtualFile[] = [];
     const newFolders: Map<string, string> = new Map();
@@ -230,39 +213,6 @@ export const FileUploader: React.FC = () => {
           </button>
         </div>
       )}
-
-      <AnimatePresence>
-        {showUploadHint &&
-          createPortal(
-            <motion.div
-              initial={{ opacity: 0, y: -20, x: "-50%" }}
-              animate={{ opacity: 1, y: 0, x: "-50%" }}
-              exit={{ opacity: 0, y: -20, x: "-50%" }}
-              className="fixed top-12 left-1/2 z-[9999] bg-[var(--surface-color)] border border-blue-500/40 shadow-[0_8px_30px_rgb(0,0,0,0.12)] px-6 py-4 rounded-2xl flex items-center gap-4"
-            >
-              <div className="bg-blue-500/10 p-2 rounded-full">
-                <Info size={24} className="text-blue-500" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-bold text-[var(--text-color)]">
-                  Consejo de carga
-                </span>
-                <span className="text-sm text-[var(--text-variant)]">
-                  {uploadFileCount > 1
-                    ? "Espera unos 10-15 segundos para asegurar una carga completa de los archivos subidos."
-                    : "Espera unos 10-15 segundos para asegurar una carga completa del archivo."}
-                </span>
-              </div>
-              <button
-                onClick={() => setShowUploadHint(false)}
-                className="ml-2 p-1.5 bg-[var(--surface-color)] hover:bg-[var(--background-color)] rounded-full text-[var(--text-variant)] hover:text-[var(--text-color)] transition-colors border border-[var(--border-color)]"
-              >
-                <X size={16} />
-              </button>
-            </motion.div>,
-            document.body,
-          )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {rarQueue.length > 0 &&
