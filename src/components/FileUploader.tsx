@@ -16,6 +16,7 @@ export const FileUploader: React.FC = () => {
   const [rarQueue, setRarQueue] = useState<{file: File, id: string, virtualFile: VirtualFile}[]>([]);
   const [isConvertingRar, setIsConvertingRar] = useState(false);
   const [showUploadHint, setShowUploadHint] = useState(false);
+  const [uploadFileCount, setUploadFileCount] = useState(1);
   const uploadHintTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -23,6 +24,7 @@ export const FileUploader: React.FC = () => {
 
   const processFiles = async (files: FileList | File[], forcedParentId: string | null = state.currentFolderId) => {
     setIsProcessing(true);
+    setUploadFileCount(files.length);
     setShowUploadHint(true);
     
     if (uploadHintTimeoutRef.current) {
@@ -151,7 +153,10 @@ export const FileUploader: React.FC = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) processFiles(e.target.files);
+    if (e.target.files) {
+      processFiles(e.target.files);
+    }
+    e.target.value = '';
   };
 
   return (
@@ -209,7 +214,9 @@ export const FileUploader: React.FC = () => {
             <div className="flex flex-col">
               <span className="text-sm font-bold text-[var(--text-color)]">Consejo de carga</span>
               <span className="text-sm text-[var(--text-variant)]">
-                Espera unos 10-15 segundos para asegurar una carga completa del archivo.
+                {uploadFileCount > 1 
+                  ? "Espera unos 10-15 segundos para asegurar una carga completa de los archivos subidos."
+                  : "Espera unos 10-15 segundos para asegurar una carga completa del archivo."}
               </span>
             </div>
             <button 
