@@ -143,7 +143,7 @@ function AppContent() {
                 <div className="flex flex-col gap-5">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="text-[var(--primary-color)] shrink-0 mt-0.5" size={20} />
-                    <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Soporte Multiformato:</strong> Lee archivos PDF, ePub, CBZ, CBR, Word (.doc, .docx) y galerías de imágenes.</p>
+                    <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Soporte Multiformato:</strong> Lee archivos PDF, ePub, CBZ, CBR, Word (.doc, .docx), archivos RAR sin protección y galerías de imágenes.</p>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="text-[var(--primary-color)] shrink-0 mt-0.5" size={20} />
@@ -151,7 +151,7 @@ function AppContent() {
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="text-[var(--primary-color)] shrink-0 mt-0.5" size={20} />
-                    <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Modos de Lectura:</strong> Disfruta de scroll vertical fluido o cambio de página horizontal.</p>
+                    <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Modos de Lectura:</strong> Disfruta de scroll vertical fluido, cambio de página horizontal y Auto-scroll disponible.</p>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="text-[var(--primary-color)] shrink-0 mt-0.5" size={20} />
@@ -205,7 +205,7 @@ function AppContent() {
               <div className="flex flex-col gap-4 mb-8">
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="text-[var(--primary-color)] shrink-0 mt-0.5" size={20} />
-                  <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Soporte Multiformato:</strong> Lee archivos PDF, ePub, CBZ, CBR, Word (.doc, .docx) y galerías de imágenes.</p>
+                  <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Soporte Multiformato:</strong> Lee archivos PDF, ePub, CBZ, CBR, Word (.doc, .docx), archivos RAR sin protección y galerías de imágenes.</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="text-[var(--primary-color)] shrink-0 mt-0.5" size={20} />
@@ -213,7 +213,7 @@ function AppContent() {
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="text-[var(--primary-color)] shrink-0 mt-0.5" size={20} />
-                  <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Modos de Lectura:</strong> Disfruta de scroll vertical fluido o cambio de página horizontal.</p>
+                  <p className="text-sm text-[var(--text-variant)]"><strong className="text-[var(--text-color)]">Modos de Lectura:</strong> Disfruta de scroll vertical fluido, cambio de página horizontal y Auto-scroll disponible.</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="text-[var(--primary-color)] shrink-0 mt-0.5" size={20} />
