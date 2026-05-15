@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Roboto", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Mapped to variables for theme switching */
+  --color-forest-bg: var(--bg-color);
+  --color-forest-surface: var(--surface-color);
+  --color-forest-surface-elevated: var(--surface-elevated-color);
+  --color-forest-primary: var(--primary-color);
+  --color-forest-on-primary: var(--on-primary-color);
+  --color-forest-secondary: var(--secondary-color);
+  --color-forest-on-secondary: var(--on-secondary-color);
+  --color-forest-outline: var(--outline-color);
+  --color-forest-surface-variant: var(--surface-variant-color);
+  --color-forest-on-surface-variant: var(--on-surface-variant-color);
+  --color-forest-error: var(--error-color);
+
+  /* Radius */
+  --radius-m3: 24px;
+  --radius-m3-large: 32px;
+}
+
+@layer base {
+  /* Light Mode (Original Forest Green) */
+  :root {
+    --bg-color: #FBFDF7;
+    --surface-color: #F0F3E9;
+    --surface-elevated-color: #E8EBE2;
+    --primary-color: #496739;
+    --on-primary-color: #FFFFFF;
+    --secondary-color: #55624C;
+    --on-secondary-color: #FFFFFF;
+    --outline-color: #74796D;
+    --surface-variant-color: #E0E4D6;
+    --on-surface-variant-color: #43483F;
+    --error-color: #BA1A1A;
+    --text-color: #191C18;
+    --text-variant: #43483F;
+  }
+
+  /* Dark Mode (Original Forest Dark) */
+  .dark {
+    --bg-color: #000000;
+    --surface-color: #111111;
+    --surface-elevated-color: #1A1A1A;
+    --primary-color: #B1CCA0;
+    --on-primary-color: #000000;
+    --secondary-color: #BFCAB2;
+    --on-secondary-color: #000000;
+    --outline-color: #444444;
+    --surface-variant-color: #222222;
+    --on-surface-variant-color: #CCCCCC;
+    --error-color: #FFB4AB;
+    --text-color: #FFFFFF;
+    --text-variant: #CCCCCC;
+  }
+
+  /* Custom Default Theme */
+  .theme-default {
+    --bg-color: #000000;
+    --surface-color: #1A1A1A;
+    --surface-elevated-color: #292828; /* Neutral */
+    --primary-color: #00FFFF;
+    --on-primary-color: #000000; /* Contrast for #00FFFF */
+    --secondary-color: #00CE00;
+    --on-secondary-color: #000000; /* Contrast for #00CE00 */
+    --outline-color: #555555;
+    --surface-variant-color: #292828;
+    --on-surface-variant-color: #E0E0E0;
+    --error-color: #FFB4AB;
+    --text-color: #FFFFFF;
+    --text-variant: #CCCCCC;
+  }
+
+  body {
+    @apply bg-[var(--bg-color)] text-[var(--text-color)] transition-colors duration-300;
+  }
+
+  * {
+    @apply border-forest-outline/20;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-forest-outline/30 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-forest-outline/50;
+}
+
+/* Webkit Directory input fix */
+input[webkitdirectory] {
+  display: none;
+}
